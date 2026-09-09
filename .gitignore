@@ -9,3 +9,4 @@ __pycache__/
 *.egg-info/
 docs/discovery.json
 docs/fomo_crawl.json
+fomo.db-journal
