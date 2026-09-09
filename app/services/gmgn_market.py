@@ -37,7 +37,8 @@ def _token_row(chain: str, row: dict[str, Any]) -> dict[str, Any]:
         "address": str(address) if address else None,
         "market_cap_usd": _number(row.get("market_cap") or row.get("marketcap") or token.get("market_cap")),
         "liquidity_usd": _number(row.get("liquidity") or token.get("liquidity")),
-        "volume_usd": _number(row.get("volume") or row.get("volume_5m") or row.get("usd_volume")),
+        "volume_usd": _number(row.get("volume") or row.get("volume_5m")
+                              or row.get("volume_24h") or row.get("usd_volume")),
         "swaps": row.get("swaps") if isinstance(row.get("swaps"), int) else None,
         "holders": row.get("holder_count") if isinstance(row.get("holder_count"), int) else None,
         "smart_degen_count": row.get("smart_degen_count")
@@ -45,8 +46,16 @@ def _token_row(chain: str, row: dict[str, Any]) -> dict[str, Any]:
         "renowned_count": row.get("renowned_count")
         if isinstance(row.get("renowned_count"), int) else None,
         "price_usd": _number(row.get("price") or token.get("price_usd")),
-        "change_5m": _number(row.get("price_change_5m") or row.get("change_5m")),
-        "change_1h": _number(row.get("price_change_1h") or row.get("change_1h")),
+        # The CLI names the percent columns price_change_percent5m/1h (no
+        # underscore before the interval); accept the older spellings too.
+        "change_5m": _number(
+            row.get("price_change_percent5m") or row.get("price_change_5m")
+            or row.get("change_5m")
+        ),
+        "change_1h": _number(
+            row.get("price_change_percent1h") or row.get("price_change_1h")
+            or row.get("change_1h")
+        ),
         "launchpad": row.get("launchpad_platform") or row.get("launchpad") or token.get("launchpad"),
         "created_at": row.get("created_at") or token.get("created_at"),
     }

@@ -133,6 +133,16 @@ def test_token_row_falls_back_to_token_name_for_symbol():
     assert row["symbol"] == "Pepe CEO"
 
 
+def test_token_row_reads_cli_percent_change_columns():
+    """The live CLI emits `price_change_percent5m`/`price_change_percent1h`
+    (no underscore before the interval); those must reach the UI's Δ 5m/Δ 1h
+    columns instead of an em-dash."""
+    row = _token_row("sol", {"address": "mint-a", "symbol": "Hoodlana",
+                             "price_change_percent5m": -67.09, "price_change_percent1h": 1106.43})
+    assert row["change_5m"] == -67.09
+    assert row["change_1h"] == 1106.43
+
+
 def test_alert_event_id_is_stable_and_type_scoped():
     from app.services.gmgn_market import alert_event_id
 
