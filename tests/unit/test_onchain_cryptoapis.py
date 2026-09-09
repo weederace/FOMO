@@ -3,8 +3,6 @@
 import asyncio
 from datetime import UTC, datetime
 
-import pytest
-
 from app.config.settings import Settings
 from app.providers.onchain import OnchainScanner
 
