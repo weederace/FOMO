@@ -1,0 +1,11 @@
+.env
+.venv/
+reports/
+*.db
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.egg-info/
+docs/discovery.json
+docs/fomo_crawl.json

@@ -1,0 +1,1 @@
+"""FOMO Whale Intelligence application."""

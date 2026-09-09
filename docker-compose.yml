@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/fomo
+      REDIS_URL: redis://redis:6379/0
+      DATA_PROVIDER: ${DATA_PROVIDER:-crawl}
+      CRAWL_URL: ${CRAWL_URL:-https://fomoapi.io/}
+      CRAWL_LEADERBOARD_WINDOW: ${CRAWL_LEADERBOARD_WINDOW:-24h}
+      CRAWL_LEADERBOARD_LIMIT: ${CRAWL_LEADERBOARD_LIMIT:-10}
+      FOMO_API_BASE_URL: ${FOMO_API_BASE_URL:-https://api.fomoapi.io}
+      FOMO_API_KEY: ${FOMO_API_KEY:-}
+      MOCK_MODE: ${MOCK_MODE:-false}
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  worker:
+    build: .
+    command: ["python", "scripts/run_worker.py"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/fomo
+      REDIS_URL: redis://redis:6379/0
+      DATA_PROVIDER: ${DATA_PROVIDER:-crawl}
+      CRAWL_URL: ${CRAWL_URL:-https://fomoapi.io/}
+      CRAWL_LEADERBOARD_WINDOW: ${CRAWL_LEADERBOARD_WINDOW:-24h}
+      CRAWL_LEADERBOARD_LIMIT: ${CRAWL_LEADERBOARD_LIMIT:-10}
+      FOMO_API_BASE_URL: ${FOMO_API_BASE_URL:-https://api.fomoapi.io}
+      FOMO_API_KEY: ${FOMO_API_KEY:-}
+      MOCK_MODE: ${MOCK_MODE:-false}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: fomo, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d fomo"], interval: 5s, timeout: 5s, retries: 10 }
+  redis:
+    image: redis:7-alpine
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 5s, retries: 10 }
