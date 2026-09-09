@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     gmgn_holdings_limit: int = Field(default=50, ge=1, le=200)
     gmgn_market_row_limit: int = Field(default=30, ge=1, le=100)
     gmgn_default_chain: str = "sol"
+    # Watchlist: pinned tokens are re-queried on this clock (default 5 minutes).
+    watchlist_interval_seconds: int = Field(default=300, ge=30)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

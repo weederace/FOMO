@@ -144,4 +144,24 @@ class Alert(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class WatchlistItem(Base):
+    """A token the user pinned for 5-minute re-checks.
+
+    Rows are keyed by (chain, address); the latest snapshot of each is cached
+    into `payload` whenever the worker refreshes the watchlist so the UI can
+    render instantly even between refreshes.
+    """
+
+    __tablename__ = "watchlist"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chain: Mapped[str] = mapped_column(String(20))
+    address: Mapped[str] = mapped_column(String(80))
+    symbol: Mapped[str | None] = mapped_column(String(80))
+    note: Mapped[str | None] = mapped_column(Text)
+    payload: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (UniqueConstraint("chain", "address", name="uq_watchlist_chain_address"),)
+
+
 AlertEvent = Alert

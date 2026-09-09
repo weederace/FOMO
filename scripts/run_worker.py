@@ -21,6 +21,7 @@ from app.services.gmgn_market import refresh_market  # noqa: E402
 from app.services.gmgn_service import enrich_wallets  # noqa: E402
 from app.services.ingestion_service import IngestionService  # noqa: E402
 from app.services.onchain_service import scan_wallets  # noqa: E402
+from app.services.watchlist_service import refresh_watchlist  # noqa: E402
 from app.telegram.bot import TelegramNotifier  # noqa: E402
 from app.utils.logging import configure_logging  # noqa: E402
 
@@ -43,6 +44,7 @@ async def run() -> None:
     last_onchain_scan = 0.0
     last_gmgn_enrich = 0.0
     last_gmgn_market = 0.0
+    last_watchlist = 0.0
     try:
         while True:
             # Every stage runs inside its own try/except: a hung or failing
@@ -87,6 +89,17 @@ async def run() -> None:
                         except Exception:
                             LOGGER.exception("GMGN enrichment failed; skipping this window")
                         last_gmgn_enrich = time.monotonic()
+                    if time.monotonic() - last_watchlist >= settings.watchlist_interval_seconds:
+                        try:
+                            watched = await refresh_watchlist(session, settings, gmgn_client, alert_service)
+                            LOGGER.info(
+                                "Watchlist refresh: %s/%s tokens, %s moving, %s errors",
+                                watched["refreshed"], watched["items"],
+                                watched["moved"], watched["errors"],
+                            )
+                        except Exception:
+                            LOGGER.exception("watchlist refresh failed; skipping this window")
+                        last_watchlist = time.monotonic()
                     # Commit immediately: alerts and trades must reach the API
                     # without waiting for the multi-minute on-chain scan that
                     # follows in the same loop iteration.

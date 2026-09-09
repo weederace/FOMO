@@ -22,13 +22,14 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 from typing import Any
 from urllib.parse import quote
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 API_URL = "http://127.0.0.1:8000"
 REFRESH_SECONDS = 30
 ALERT_REFRESH_SECONDS = 30
-RADAR_REFRESH_SECONDS = 60
+RADAR_REFRESH_SECONDS = 300
+WATCHLIST_REFRESH_SECONDS = 300
 
 # ---- palette -----------------------------------------------------------------
 BG = "#0b0e14"
@@ -1590,7 +1591,7 @@ class Launcher(tk.Tk):
         self.radar_status.pack(side="left")
         self.radar_section = tk.StringVar(value="trending")
         for key, label in (("trending", "Trending 5m"), ("trenches", "New & Graduating"),
-                           ("hot", "Hot Searches")):
+                           ("hot", "Hot Searches"), ("watchlist", "★ Watchlist")):
             button = tk.Label(header, text=label, bg=BG, fg=MUTED, font=(FONT_BOLD, 8),
                               padx=8, pady=2, cursor="hand2")
             button.pack(side="right")
@@ -1600,6 +1601,11 @@ class Launcher(tk.Tk):
 
         columns = [
             Column("symbol", "Token", 120, "w", bold=True),
+            Column("watch", "★", 34, "center", click=True, bold=True,
+                   text=lambda r: "★" if r.get("_watched") else "☆",
+                   color=lambda r: GOLD if r.get("_watched") else FAINT,
+                   tooltip=lambda r: ("Remove from watchlist" if r.get("_watched")
+                                      else "Pin this token — refreshed every 5 minutes")),
             Column("chain", "Chain", 70, "w", size=8,
                    text=lambda r: f"{chain_icon(r.get('chain'))} {r.get('chain') or '—'}",
                    color=lambda r: MUTED),
@@ -1645,7 +1651,7 @@ class Launcher(tk.Tk):
             on_click=self._radar_click,
         )
         self.radar_table.hover_detail = DetailPopup(self.radar_table.body, self._radar_detail_lines)
-        self.radar_data: dict[str, list[dict]] = {"trending": [], "trenches": [], "hot": []}
+        self.radar_data: dict[str, list[dict]] = {"trending": [], "trenches": [], "hot": [], "watchlist": []}
         self._show_radar_section("trending")
 
     def _radar_click(self, row: dict, col: Column) -> None:
@@ -1658,6 +1664,41 @@ class Launcher(tk.Tk):
             self.clipboard_clear()
             self.clipboard_append(row["address"])
             self.log(f"Copied contract {short_wallet(row['address'])} to clipboard\n", "ok")
+        elif col.key == "watch" and row.get("address"):
+            self._watchlist_toggle(row)
+
+    def _watchlist_toggle(self, row: dict) -> None:
+        """Pin/unpin a radar row. The worker re-queries pinned tokens every 5
+        minutes; removal is instant."""
+        chain = str(row.get("chain") or "sol")
+        address = str(row.get("address") or "")
+        symbol = str(row.get("symbol") or "") or None
+        if row.get("_watched"):
+            request = Request(f"{API_URL}/watchlist/{chain}/{address}", method="DELETE")
+            action = "removed from"
+        else:
+            payload = json.dumps({"chain": chain, "address": address, "symbol": symbol}).encode()
+            request = Request(f"{API_URL}/watchlist", data=payload,
+                              headers={"Content-Type": "application/json"}, method="POST")
+            action = "pinned to"
+        try:
+            with urlopen(request, timeout=8) as response:
+                response.read()
+            self.log(f"{symbol or short_wallet(address)} {action} the watchlist\n",
+                     "ok" if action.startswith("pinned") else "muted")
+        except Exception as exc:
+            self.log(f"Watchlist update failed: {exc}\n", "fail")
+        threading.Thread(target=self._fetch_watchlist, daemon=True).start()
+
+    def _fetch_watchlist(self) -> None:
+        """Pull the current watchlist (worker-refreshed every 5 minutes)."""
+        try:
+            with urlopen(f"{API_URL}/watchlist", timeout=8) as response:
+                rows = json.loads(response.read().decode("utf-8"))
+        except Exception as exc:
+            self.dashboard_output.put({"_log": f"Watchlist fetch failed: {exc}\n", "_log_tag": "fail"})
+            return
+        self.dashboard_output.put({"_watchlist": rows})
 
     def _show_radar_section(self, key: str) -> None:
         self.radar_section.set(key)
@@ -1668,9 +1709,10 @@ class Launcher(tk.Tk):
         self.radar_table.set_rows(self.radar_data.get(key, []))
 
     def _radar_detail_lines(self, row: dict) -> list[tuple[str, str, str]]:
-        """Hover card for one GMGN radar token row."""
+        """Hover card for one GMGN radar / watchlist token row."""
         lines = [
-            ("Token", f"{row.get('symbol') or '—'}  {chain_icon(row.get('chain'))} "
+            ("Token", f"{'★ ' if row.get('_watched') else ''}{row.get('symbol') or '—'}  "
+             f"{chain_icon(row.get('chain'))} "
              f"{str(row.get('chain') or '').upper() or '—'}", TEXT),
             ("Price", price_text(row.get("price_usd")), TEXT),
             ("Change 5m", self._pct_text(row.get("change_5m")), pnl_color(row.get("change_5m"))),
@@ -1881,6 +1923,8 @@ class Launcher(tk.Tk):
                 feeds[key] = {"_error": str(exc)}
         self.dashboard_output.put({"_radar": feeds, "_radar_fetched_at": time.monotonic()})
         self.radar_fetching = False
+        # The watchlist rides the same clock so ★ rows stay in sync.
+        self._fetch_watchlist()
 
     def _render_radar(self, feeds: dict) -> None:
         def rows_of(key: str, payload: object) -> list[dict]:
@@ -1897,6 +1941,7 @@ class Launcher(tk.Tk):
             return []
 
         self.radar_data = {key: rows_of(key, feeds.get(key)) for key in ("trending", "trenches", "hot")}
+        self._stamp_watched()
         errors = sum(
             1 for payload in feeds.values() if isinstance(payload, dict) and "_error" in payload
         )
@@ -1906,6 +1951,26 @@ class Launcher(tk.Tk):
             status = f"GMGN radar — updated {ago}s ago" + (f" · {errors} feed(s) offline" if errors else "")
             self.radar_status.configure(text=status, fg=MUTED if errors else GREEN)
         self._show_radar_section(self.radar_section.get())
+
+    def _stamp_watched(self) -> None:
+        """Flag radar rows that are already pinned so ★/☆ reflects state."""
+        watched = {
+            (str(r.get("chain")), str(r.get("address")))
+            for r in self.radar_data.get("watchlist", [])
+        }
+        for key in ("trending", "trenches", "hot"):
+            for row in self.radar_data.get(key, []):
+                row["_watched"] = (str(row.get("chain")), str(row.get("address"))) in watched
+
+    def _render_watchlist(self, rows: list[dict]) -> None:
+        """Show pinned tokens; the worker refreshes their data every 5 minutes."""
+        self.radar_data["watchlist"] = rows
+        self._stamp_watched()
+        if self.radar_section.get() == "watchlist":
+            self.radar_table.set_rows(rows)
+        else:
+            # refresh star state on whichever section is visible
+            self._show_radar_section(self.radar_section.get())
 
     # ---------- rendering ----------
 
@@ -2206,6 +2271,8 @@ class Launcher(tk.Tk):
                     pass
                 elif "_radar" in data:
                     self._render_radar(data["_radar"] | {"_radar_fetched_at": data.get("_radar_fetched_at")})
+                elif "_watchlist" in data:
+                    self._render_watchlist(data["_watchlist"])
                 else:
                     self._render_dashboard(data)
         except queue.Empty:

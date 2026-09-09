@@ -17,10 +17,12 @@ from app.database.models import (
     Trader,
     TraderScore,
     TraderSnapshot,
+    WatchlistItem,
 )
 from app.database.repository import TraderRepository
 from app.database.session import engine, get_session
 from app.providers.factory import create_provider
+from app.services import watchlist_service
 from app.services.emerging_service import find_emerging_traders
 from app.services.gmgn_market import market_cache
 from app.services.market_data import token_market_data
@@ -453,6 +455,72 @@ async def gmgn_wallet_score(chain: str, wallet: str):
     sells = sum(1 for row in activity if str(row.get("event_type") or row.get("type") or "").lower() == "sell")
     base["recent_activity"] = {"buys": buys, "sells": sells, "events": len(activity)}
     return {"chain": chain, "wallet": wallet, **base}
+
+
+# ---- token watchlist (user-pinned tokens, refreshed every 5 minutes) ----
+
+def _watchlist_dict(item: WatchlistItem) -> dict:
+    payload = item.payload or {}
+    return {
+        "id": item.id, "chain": item.chain, "address": item.address,
+        "symbol": item.symbol or payload.get("symbol"), "note": item.note,
+        "price_usd": payload.get("price_usd"),
+        "change_5m": payload.get("change_5m"),
+        "change_1h": payload.get("change_1h"),
+        "market_cap_usd": payload.get("market_cap_usd"),
+        "liquidity_usd": payload.get("liquidity_usd"),
+        "volume_usd": payload.get("volume_usd"),
+        "holders": payload.get("holders"),
+        "smart_degen_count": payload.get("smart_degen_count"),
+        "renowned_count": payload.get("renowned_count"),
+        "refreshed_at": payload.get("refreshed_at"),
+        "created_at": item.created_at,
+    }
+
+
+@app.get("/watchlist")
+async def watchlist_list(session: AsyncSession = Depends(get_session)):
+    return [_watchlist_dict(item) for item in await watchlist_service.list_items(session)]
+
+
+@app.post("/watchlist", status_code=201)
+async def watchlist_add(
+    chain: str = Query(..., min_length=2, max_length=20),
+    address: str = Query(..., min_length=20, max_length=80),
+    symbol: str | None = Query(None, max_length=80),
+    note: str | None = Query(None, max_length=500),
+    session: AsyncSession = Depends(get_session),
+):
+    item = await watchlist_service.add_token(session, chain, address, symbol, note)
+    await session.commit()
+    return _watchlist_dict(item)
+
+
+@app.delete("/watchlist/{chain}/{address}", status_code=200)
+async def watchlist_delete(chain: str, address: str,
+                           session: AsyncSession = Depends(get_session)):
+    removed = await watchlist_service.remove_token(session, chain, address)
+    await session.commit()
+    if not removed:
+        raise HTTPException(404, "Not on the watchlist")
+    return {"removed": True}
+
+
+@app.post("/watchlist/refresh")
+async def watchlist_refresh(session: AsyncSession = Depends(get_session)):
+    """Pull fresh GMGN data for every pinned token right now (the worker also
+    does this on its own 5-minute clock)."""
+    settings = _gmgn_settings()
+    try:
+        client = _gmgn_client(settings)
+        summary = await watchlist_service.refresh_watchlist(session, settings, client)
+        await client.aclose()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(503, f"gmgn-cli unavailable: {type(exc).__name__}") from exc
+    await session.commit()
+    return summary
 
 
 @app.get("/dashboard")
