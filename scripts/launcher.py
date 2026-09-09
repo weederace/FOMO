@@ -2418,6 +2418,10 @@ class Launcher(tk.Tk):
                 hint = tk.Label(row, text="↳ free key: https://etherscan.io/apis",
                                 bg=BG, fg=FAINT, font=(FONT, 8))
                 hint.pack(side="left", padx=(8, 0))
+            elif key == "CRYPTOAPIS_API_KEY":
+                hint = tk.Label(row, text="↳ free tier: https://www.cryptoapis.io",
+                                bg=BG, fg=FAINT, font=(FONT, 8))
+                hint.pack(side="left", padx=(8, 0))
 
         def save() -> None:
             current = env_file.read_text(encoding="utf-8", errors="replace").splitlines() if env_file.exists() else []
