@@ -51,6 +51,24 @@ Run tests with `pytest`; lint with `ruff check .`. Copy `.env.example` to `.env`
 configure PostgreSQL, Redis, collection intervals, thresholds, and optional Telegram.
 The default SQLite database requires no external services.
 
+### Your own API keys
+
+The repo ships **no keys**. Every integration reads its key from your local `.env`
+(copy `.env.example` → `.env`); the top of that file lists where to obtain each one:
+
+| Key | Used for | Required? |
+|---|---|---|
+| `GMGN_API_KEY` | wallet enrichment, GMGN Radar tab, market alerts | optional (free at gmgn.ai/ai) |
+| `COINGECKO_API_KEY` | token prices in Token Rankings / Movers | optional (free demo plan) |
+| `ETHERSCAN_API_KEY` | on-chain EVM transfer scans (ETH/Base/BSC) | optional (free) |
+| `CRYPTOAPIS_API_KEY` | faster on-chain source with Etherscan fallback | optional |
+| `SOLSCAN_API_KEY` | Solana on-chain scans | optional |
+| `FOMO_API_KEY` | only when `DATA_PROVIDER=fomoapi` | optional (default `crawl` needs none) |
+
+Missing keys disable only their own feature — the rest of the app keeps working.
+If you cloned this repo from GitHub, also check `.zcode/skills/` for optional
+agent-skill definitions; they are documentation, not credentials.
+
 ### Optional On-chain Wallet Scanning
 
 Use `API settings` in the launcher to save an Etherscan API key (shared by Ethereum,
