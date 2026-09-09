@@ -83,6 +83,69 @@ Missing keys disable only their own feature — the rest of the app keeps workin
 If you cloned this repo from GitHub, also check `.zcode/skills/` for optional
 agent-skill definitions; they are documentation, not credentials.
 
+---
+
+## 🇮🇷 راهنمای کامل فارسی — از صفر تا صد
+
+این برنامه یک داشبورد هوشمند برای رصد «نهنگ‌ها» (تریدرهای بزرگ) در پلتفرم FOMO و
+زنجیره‌های Solana / Ethereum / Base / BSC است. هیچ تراکنشی انجام نمی‌دهد؛ فقط دادهٔ
+عمومی را جمع می‌کند و تحلیل نشان می‌دهد.
+
+### نصب — فقط دو قدم
+
+1. **پایتون ۳.۱۲ یا جدیدتر** را از [python.org](https://www.python.org/downloads/) نصب کنید.
+   موقع نصب حتماً تیک **"Add python.exe to PATH"** را بزنید.
+2. فایل **`run.bat`** را دابل‌کلیک کنید.
+
+همین! اجرای اول همه‌چیز را خودکار انجام می‌دهد:
+- ساخت محیط مجازی (venv)
+- نصب خودکار تمام پیش‌نیازها از `requirements.txt`
+- دانلود Chromium برای حالت crawl
+- ساخت فایل `.env` از روی قالب
+- باز شدن پنجرهٔ برنامه
+
+دفعات بعدی فقط `run.bat` را بزنید — مستقیم برنامه باز می‌شود.
+
+### کلیدهای API خودتان را بگیرید (رایگان)
+
+این ریپو **هیچ کلیدی ندارد** و هر کاربر باید کلیدهای خودش را وارد کند.
+در برنامه روی دکمهٔ **«API settings»** کلیک کنید و کلیدها را Paste کنید؛
+یا فایل `.env` را با Notepad باز کنید و بعد از علامت `=` بگذارید.
+
+| کلید | برای چه قابلیتی | لینک دریافت رایگان |
+|---|---|---|
+| `GMGN_API_KEY` | رادار GMGN، واچ‌لیست ۵ دقیقه‌ای، تریدهای نهنگ‌ها، الرت‌های مارکت | [gmgn.ai/ai?chain=sol&tab=api_management](https://gmgn.ai/ai?chain=sol&tab=api_management) |
+| `ETHERSCAN_API_KEY` | اسکن ترنسفرهای on-chain روی Ethereum / Base / BSC | [etherscan.io/apidashboard](https://etherscan.io/apidashboard) |
+| `SOLSCAN_API_KEY` | اسکن ترنسفرهای on-chain روی Solana | [solscan.io/user/profile#api_management](https://solscan.io/user/profile#api_management) |
+| `COINGECKO_API_KEY` | قیمت و مارکت‌کپ توکن‌ها در Token Rankings و Movers | [coingecko.com/en/api](https://www.coingecko.com/en/api) |
+| `CRYPTOAPIS_API_KEY` | منبع سریع‌تر برای Base/BSC (اختیاری؛ بدون آن از Etherscan استفاده می‌شود) | [cryptoapis.io](https://www.cryptoapis.io) |
+| `FOMO_API_KEY` | فقط اگر `DATA_PROVIDER=fomoapi` بگذارید (حالت پیش‌فرض crawl نیازی ندارد) | — |
+
+**نکته:** بدون هیچ کلیدی هم برنامه بالا می‌آید و Leaderboard / Movers / Alerts پایه
+کار می‌کند؛ هر کلید فقط قابلیت خودش را اضافه می‌کند. بعد از وارد کردن کلیدها،
+worker را از داخل برنامه Stop و دوباره Start کنید.
+
+### تب‌های برنامه
+
+- **Leaderboard** — صدرنشینان بر اساس Whale Score
+- **Movers** — بیشترین رشد امتیاز نسبت به اولین اسنپ‌شات
+- **Whale Flow** — رویدادهای خرید/فروش نهنگ‌ها + تغییر حجم هر توکن
+- **Alerts** — الرت‌های زنده (توکن جدید، ترند، ورود پول هوشمند…) — هر ۳۰ ثانیه
+- **Token Rankings** — توکن‌های پرسود با قیمت، مارکت‌کپ و حجم ۲۴ ساعته
+- **GMGN Radar** — توکن‌های ترند / تازه‌ساخته / پرجستجو + **واچ‌لیست (★)** خودتان؛ همه هر ۵ دقیقه خودکار آپدیت می‌شوند
+- **System Logs** — لاگ کامل سیستم
+
+میان‌برها: `Ctrl+1` تا `Ctrl+7` برای پرش بین تب‌ها، `Esc` برای بستن پاپ‌آپ‌ها.
+روی هر ردیف ماوس نگه دارید تا کارت اطلاعات باز شود؛ ستون‌های کلیک‌پذیر (آدرس، ↗) عمل copy یا باز کردن لینک GMGN را انجام می‌دهند.
+
+### سؤالات پرتکرار
+
+- **GMGN Radar یا واچ‌لیست خالی است؟** کلید `GMGN_API_KEY` را وارد نکرده‌اید یا GMGN integration را در API settings فعال نکرده‌اید.
+- **قیمت‌ها در Token Rankings خالی است؟** کلید `COINGECKO_API_KEY` لازم است (توکن‌های خیلی کوچک ممکن است در هیچ سرویسی ایندکس نشده باشند).
+- **الرت‌ها آپدیت نمی‌شود؟** دکمهٔ ▸ Start worker را بزنید؛ worker باید RUNNING باشد.
+- **فایل `.env` را خراب کردم؟** آن را حذف کنید و `run.bat` را دوباره اجرا کنید — از قالب ساخته می‌شود.
+
+
 ### Optional On-chain Wallet Scanning
 
 Use `API settings` in the launcher to save an Etherscan API key (shared by Ethereum,
