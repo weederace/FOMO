@@ -7,7 +7,7 @@ by the API, the desktop client, and tests without coupling the UI to SQLAlchemy.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 
@@ -100,7 +100,11 @@ def flow_summary(
             except ValueError:
                 timestamp = None
         if timestamp is not None and timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=now.tzinfo)
+            # The database stores naive UTC timestamps; tagging them with the
+            # local timezone shifted every trade hours into the past (Iran is
+            # UTC+3:30), which emptied all the 5m/1h volume windows. Treat
+            # naive timestamps as UTC.
+            timestamp = timestamp.replace(tzinfo=UTC)
         normalized.append((trade, timestamp))
 
     def in_window(timestamp: datetime | None, minutes: int, offset: int = 0) -> bool:
