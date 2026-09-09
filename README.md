@@ -3,6 +3,20 @@
 An analytics-only platform for discovering and monitoring traders from legitimately
 accessible public data. It does not trade, bypass access controls, or collect credentials.
 
+## Quick start (no experience needed)
+
+1. Install **Python 3.12+** from [python.org](https://www.python.org/downloads/) —
+   tick **"Add python.exe to PATH"** during setup.
+2. Double-click **`run.bat`**.
+
+That is all the first run needs: it creates a virtual environment, installs every
+dependency from `requirements.txt` automatically, downloads Chromium, writes `.env`
+from `.env.example`, and opens the app. Later runs go straight to the window.
+
+3. (Optional) Click **API settings** in the launcher to paste your own free API keys
+   — GMGN ([gmgn.ai/ai](https://gmgn.ai/ai)), CoinGecko, Etherscan — then restart the
+   worker. Every key unlocks its own feature; the app runs fine with none of them.
+
 ## Run on Windows
 
 Double-click `run.bat`. On the first run it creates `.venv`, installs the

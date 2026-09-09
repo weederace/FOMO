@@ -2406,6 +2406,18 @@ class Launcher(tk.Tk):
             entry.bind("<Control-KeyPress-V>", lambda event, target=entry: (self._paste_entry(target), "break")[1])
             entry.bind("<Control-KeyPress>", lambda event, target=entry: self._paste_physical_v(event, target))
             entry.bind("<Shift-KeyPress-Insert>", lambda event, target=entry: (self._paste_entry(target), "break")[1])
+            if key == "GMGN_API_KEY":
+                hint = tk.Label(row, text="↳ get a free key at https://gmgn.ai/ai  (enable GMGN integration above)",
+                                bg=BG, fg=FAINT, font=(FONT, 8))
+                hint.pack(side="left", padx=(8, 0))
+            elif key == "COINGECKO_API_KEY":
+                hint = tk.Label(row, text="↳ free key: https://www.coingecko.com/en/api",
+                                bg=BG, fg=FAINT, font=(FONT, 8))
+                hint.pack(side="left", padx=(8, 0))
+            elif key == "ETHERSCAN_API_KEY":
+                hint = tk.Label(row, text="↳ free key: https://etherscan.io/apis",
+                                bg=BG, fg=FAINT, font=(FONT, 8))
+                hint.pack(side="left", padx=(8, 0))
 
         def save() -> None:
             current = env_file.read_text(encoding="utf-8", errors="replace").splitlines() if env_file.exists() else []

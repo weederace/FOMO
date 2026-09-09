@@ -1,0 +1,16 @@
+# Runtime dependencies for FOMO Whale Intelligence.
+# Install everything automatically:
+#   Windows: double-click run.bat (creates .venv and installs these)
+#   Any OS:  python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
+aiogram>=3.4
+alembic>=1.13
+asyncpg>=0.29
+aiosqlite>=0.20
+fastapi>=0.115
+httpx>=0.27
+playwright>=1.45
+pydantic>=2.8
+pydantic-settings>=2.4
+redis>=5.0
+sqlalchemy[asyncio]>=2.0
+uvicorn[standard]>=0.30

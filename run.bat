@@ -146,7 +146,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [3/5] Installing project dependencies...
+echo [3/5] Installing project dependencies (requirements.txt)...
+"%VENV_PY%" -m pip install -r requirements.txt --quiet
+if errorlevel 1 (
+    echo [X] requirements.txt installation failed.
+    exit /b 1
+)
 "%VENV_PY%" -m pip install -e ".[dev]" --quiet
 if errorlevel 1 (
     echo [X] Dependency installation failed.
